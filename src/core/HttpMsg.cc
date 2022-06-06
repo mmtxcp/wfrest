@@ -6,6 +6,14 @@
 
 #ifdef _WIN32
 #include <direct.h>
+#include <windows.h>
+#include <tchar.h> 
+#include <stdio.h>
+#include <strsafe.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <io.h>
+
 #else
 #include <unistd.h>
 #endif
@@ -568,28 +576,32 @@ void HttpResp::String(MultiPartEncoder *encoder)
     const MultiPartEncoder::FileList &file_list = encoder->files();
     size_t file_cnt = file_list.size();
     assert(file_cnt >= 0);
-    for(const auto &file : file_list) 
-    {
-        file_cnt--;
-        if(!PathUtil::is_file(file.second))
-        {
-            fprintf(stderr, "[Error] Not a File : %s\n", file.second.c_str());
-            continue;
-        }
-        size_t file_size;
-        int ret = FileUtil::size(file.second, OUT &file_size);
-        if (ret != StatusOK)
-        {
-            fprintf(stderr, "[Error] Invalid File : %s\n", file.second.c_str());
-            continue;
-        }
+	for (const auto& file : file_list)
+	{
+		file_cnt--;
+		if (!PathUtil::is_file(file.second))
+		{
+			fprintf(stderr, "[Error] Not a File : %s\n", file.second.c_str());
+			continue;
+		}
+		size_t file_size;
+		int ret = FileUtil::size(file.second, OUT & file_size);
+		if (ret != StatusOK)
+		{
+			fprintf(stderr, "[Error] Invalid File : %s\n", file.second.c_str());
+			continue;
+		}
+		int fd = open(file.second.c_str(), O_RDONLY);
+		if (fd < 0){
+			continue;
+		}
         void *buf = malloc(file_size);
-        WFFileIOTask *pread_task = WFTaskFactory::create_pread_task(file.second,
+        WFFileIOTask *pread_task = WFTaskFactory::create_pread_task(fd,
                 buf, file_size, 0,
                 [&file, &boudary](WFFileIOTask *pread_task) {
                     FileIOArgs *args = pread_task->get_args();
                     long ret = pread_task->get_retval();
-                    
+					close(args->fd);
                     SeriesWork *series = series_of(pread_task);
                     std::string *content = static_cast<std::string *>(series->get_context());
                     if (pread_task->get_state() != WFT_STATE_SUCCESS || ret < 0)

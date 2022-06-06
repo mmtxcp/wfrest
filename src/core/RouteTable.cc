@@ -51,10 +51,10 @@ RouteTableNode::iterator RouteTableNode::find(const StringPiece &route,
 {
     assert(cursor >= 0);
     // We found the route
-    if ((cursor == route.size() and !verb_handler_.verb_handler_map.empty()) or (children_.empty()))
+    if ((cursor == route.size() && !verb_handler_.verb_handler_map.empty()) or (children_.empty()))
         return iterator{this, route, verb_handler_};
     // /*
-    if(cursor == route.size() and !children_.empty())
+    if(cursor == route.size() && !children_.empty())
     {
         auto it = children_.find(StringPiece("*"));
         if(it != children_.end())

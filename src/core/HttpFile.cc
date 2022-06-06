@@ -9,6 +9,17 @@
 #include "FileUtil.h"
 #include "ErrorCode.h"
 
+#ifdef WIN32
+#include <windows.h>
+#include <tchar.h> 
+#include <stdio.h>
+#include <strsafe.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <io.h>
+#pragma comment(lib, "User32.lib")
+#endif // WIN32
+
 using namespace wfrest;
 
 namespace
@@ -34,10 +45,12 @@ void pread_callback(WFFileIOTask *pread_task)
     FileIOArgs *args = pread_task->get_args();
     long ret = pread_task->get_retval();
     auto *resp = static_cast<HttpResp *>(pread_task->user_data);
-
+	close(args->fd);
     if (pread_task->get_state() != WFT_STATE_SUCCESS || ret < 0)
     {
-        resp->Error(StatusFileReadError);
+       
+		resp->set_status_code("503");
+		resp->append_output_body("<html>503 Internal Server Error.</html>");
     } else
     {
         resp->append_output_body_nocopy(args->buf, ret);
@@ -46,10 +59,12 @@ void pread_callback(WFFileIOTask *pread_task)
 
 void pwrite_callback(WFFileIOTask *pwrite_task)
 {
+	FileIOArgs* args = pwrite_task->get_args();
     long ret = pwrite_task->get_retval();
     HttpServerTask *server_task = task_of(pwrite_task);
     HttpResp *resp = server_task->get_resp();
     auto *save_context = static_cast<SaveFileContext *>(pwrite_task->user_data);
+	close(args->fd);
 
     if (pwrite_task->get_state() != WFT_STATE_SUCCESS || ret < 0)
     {
@@ -105,29 +120,39 @@ int HttpFile::send_file(const std::string &path, size_t file_start, size_t file_
         content_type = APPLICATION_OCTET_STREAM;
     }
     resp->headers["Content-Type"] = ContentType::to_str(content_type);
+	int fd = open(path.c_str(), O_RDONLY);
+	if (fd >= 0)
+	{
+		size_t size = end - start;
+		void* buf = malloc(size);
 
-    size_t size = end - start;
-    void *buf = malloc(size);
+		HttpServerTask* server_task = task_of(resp);
+		server_task->add_callback([buf](HttpTask* server_task)
+			{
+				free(buf);
+			});
+		// https://datatracker.ietf.org/doc/html/rfc7233#section-4.2
+		// Content-Range: bytes 42-1233/1234
+		resp->headers["Content-Range"] = "bytes " + std::to_string(start)
+			+ "-" + std::to_string(end)
+			+ "/" + std::to_string(size);
 
-    HttpServerTask *server_task = task_of(resp);
-    server_task->add_callback([buf](HttpTask *server_task)
-                              {
-                                  free(buf);
-                              });
-    // https://datatracker.ietf.org/doc/html/rfc7233#section-4.2
-    // Content-Range: bytes 42-1233/1234
-    resp->headers["Content-Range"] = "bytes " + std::to_string(start)
-                                            + "-" + std::to_string(end)
-                                            + "/" + std::to_string(size);
+		WFFileIOTask* pread_task = WFTaskFactory::create_pread_task(fd,
+			buf,
+			size,
+			static_cast<off_t>(start),
+			pread_callback);
+		pread_task->user_data = resp;
+		//ÎÒµÄÌí¼Ó
+		server_task->user_data = buf;	/* to free() in callback() */
+		**server_task << pread_task;
+		return StatusOK;
 
-    WFFileIOTask *pread_task = WFTaskFactory::create_pread_task(path,
-                                                                buf,
-                                                                size,
-                                                                static_cast<off_t>(start),
-                                                                pread_callback);
-    pread_task->user_data = resp;  
-    **server_task << pread_task;
-    return StatusOK;
+	}
+
+	resp->Error(StatusFileReadError);
+	return StatusFileReadError;
+
 }
 
 void HttpFile::save_file(const std::string &dst_path, const std::string &content, HttpResp *resp)
@@ -138,13 +163,19 @@ void HttpFile::save_file(const std::string &dst_path, const std::string &content
 void HttpFile::save_file(const std::string &dst_path, const std::string &content,
                                         HttpResp *resp, const std::string &notify_msg) 
 {
+	int fd = open(dst_path.c_str(), O_WRONLY | O_CREAT, 0644);
+	if (fd < 0)
+	{
+		resp->Error(StatusFileWriteError);
+		return;
+	}
     HttpServerTask *server_task = task_of(resp);
 
     auto *save_context = new SaveFileContext; 
     save_context->content = content;    // copy
     save_context->notify_msg = notify_msg;  // copy
 
-    WFFileIOTask *pwrite_task = WFTaskFactory::create_pwrite_task(dst_path,
+    WFFileIOTask *pwrite_task = WFTaskFactory::create_pwrite_task(fd,
                                                                   static_cast<const void *>(save_context->content.c_str()),
                                                                   save_context->content.size(),
                                                                   0,
@@ -159,13 +190,19 @@ void HttpFile::save_file(const std::string &dst_path, const std::string &content
 void HttpFile::save_file(const std::string &dst_path, const std::string &content,
                                         HttpResp *resp, std::string &&notify_msg) 
 {
+	int fd = open(dst_path.c_str(), O_WRONLY | O_CREAT, 0644);
+	if (fd < 0)
+	{
+		resp->Error(StatusFileWriteError);
+		return;
+	}
     HttpServerTask *server_task = task_of(resp);
 
     auto *save_context = new SaveFileContext; 
     save_context->content = content;    // copy
     save_context->notify_msg = std::move(notify_msg);  
 
-    WFFileIOTask *pwrite_task = WFTaskFactory::create_pwrite_task(dst_path,
+    WFFileIOTask *pwrite_task = WFTaskFactory::create_pwrite_task(fd,
                                                                   static_cast<const void *>(save_context->content.c_str()),
                                                                   save_context->content.size(),
                                                                   0,
@@ -185,13 +222,19 @@ void HttpFile::save_file(const std::string &dst_path, std::string &&content, Htt
 void HttpFile::save_file(const std::string &dst_path, std::string &&content, 
                                         HttpResp *resp, const std::string &notify_msg) 
 {
+	int fd = open(dst_path.c_str(), O_WRONLY | O_CREAT, 0644);
+	if (fd < 0)
+	{
+		resp->Error(StatusFileWriteError);
+		return;
+	}
     HttpServerTask *server_task = task_of(resp);
 
     auto *save_context = new SaveFileContext; 
     save_context->content = std::move(content);  
     save_context->notify_msg = notify_msg;  // copy
 
-    WFFileIOTask *pwrite_task = WFTaskFactory::create_pwrite_task(dst_path,
+    WFFileIOTask *pwrite_task = WFTaskFactory::create_pwrite_task(fd,
                                                                   static_cast<const void *>(save_context->content.c_str()),
                                                                   save_context->content.size(),
                                                                   0,
@@ -206,13 +249,19 @@ void HttpFile::save_file(const std::string &dst_path, std::string &&content,
 void HttpFile::save_file(const std::string &dst_path, std::string &&content, 
                                         HttpResp *resp, std::string &&notify_msg) 
 {
+	int fd = open(dst_path.c_str(), O_WRONLY | O_CREAT, 0644);
+	if (fd < 0)
+	{
+		resp->Error(StatusFileWriteError);
+		return;
+	}
     HttpServerTask *server_task = task_of(resp);
 
     auto *save_context = new SaveFileContext; 
     save_context->content = std::move(content);  
     save_context->notify_msg = std::move(notify_msg); 
 
-    WFFileIOTask *pwrite_task = WFTaskFactory::create_pwrite_task(dst_path,
+    WFFileIOTask *pwrite_task = WFTaskFactory::create_pwrite_task(fd,
                                                                   static_cast<const void *>(save_context->content.c_str()),
                                                                   save_context->content.size(),
                                                                   0,

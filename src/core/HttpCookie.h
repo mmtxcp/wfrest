@@ -13,6 +13,7 @@ namespace wfrest
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cookie
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies
 
+#undef STRICT
 enum class SameSite
 {
     DEFAULT, STRICT, LAX, NONE

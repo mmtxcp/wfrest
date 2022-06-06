@@ -1,5 +1,5 @@
 #include "StrUtil.h"
-
+using namespace std;
 using namespace wfrest;
 
 const std::string wfrest::string_not_found = "";
@@ -26,7 +26,7 @@ StringPiece StrUtil::trim_pairs(const StringPiece &str, const char *pairs)
 StringPiece StrUtil::ltrim(const StringPiece &str)
 {
     const char *lhs = str.begin();
-    while (lhs != str.end() and std::isspace(*lhs)) lhs++;
+    while (lhs != str.end() && isspace(*lhs)) lhs++;
     if (lhs == str.end()) return {};
     StringPiece res(str);
     res.remove_prefix(lhs - str.begin());
@@ -37,8 +37,8 @@ StringPiece StrUtil::rtrim(const StringPiece &str)
 {
     if (str.empty()) return str;
     const char *rhs = str.end() - 1;
-    while (rhs != str.begin() and std::isspace(*rhs)) rhs--;
-    if (rhs == str.begin() and std::isspace(*rhs)) return {};
+    while (rhs != str.begin() && isspace(*rhs)) rhs--;
+    if (rhs == str.begin() && isspace(*rhs)) return {};
     StringPiece res(str.begin(), rhs - str.begin() + 1);
     return res;
 }

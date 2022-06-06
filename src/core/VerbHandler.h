@@ -4,7 +4,7 @@
 #include <functional>
 #include <set>
 #include "HttpMsg.h"
-
+#undef DELETE 
 namespace wfrest
 {
 

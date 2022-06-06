@@ -1,7 +1,12 @@
 #include "PathUtil.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <direct.h>
+
+#else
 #include <unistd.h>
+#endif
 
 using namespace wfrest;
 
@@ -62,11 +67,11 @@ std::string PathUtil::concat_path(const std::string &lhs, const std::string &rhs
 bool PathUtil::is_dir(const std::string &path)
 {
     struct stat st;
-    return stat(path.c_str(), &st) >= 0 && S_ISDIR(st.st_mode);
+    return stat(path.c_str(), &st) >= 0 && S_ISDIR(st.st_mode) ;
 }
 
 bool PathUtil::is_file(const std::string &path)
 {
     struct stat st;
-    return stat(path.c_str(), &st) >= 0 && S_ISREG(st.st_mode);
+    return stat(path.c_str(), &st) >= 0 && S_ISREG(st.st_mode) ;
 }

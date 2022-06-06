@@ -1,6 +1,18 @@
 #ifndef WFREST_PATHUTIL_H_
 #define WFREST_PATHUTIL_H_
 
+
+#if defined __WIN32__ || defined _WIN32 || defined _Windows
+#if !defined S_ISDIR
+#define S_ISDIR(m) (((m) & _S_IFDIR) == _S_IFDIR)
+#endif
+
+#if !defined S_ISREG
+#define S_ISREG(m) (((m) & _S_IFREG) == _S_IFREG)
+#endif
+
+#endif
+
 #include <string>
 
 namespace wfrest

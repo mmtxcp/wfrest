@@ -1,7 +1,12 @@
 #include "workflow/HttpUtil.h"
 #include "workflow/HttpMessage.h"
 
+#ifdef _WIN32
+#include <workflow/PlatformSocket.h>
+#else
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#endif
 
 #include "HttpServerTask.h"
 #include "StrUtil.h"

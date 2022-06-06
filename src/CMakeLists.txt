@@ -10,6 +10,8 @@ if (NOT "$ENV{CPLUS_INCLUDE_PATH}" STREQUAL "")
 	set(CMAKE_SYSTEM_INCLUDE_PATH ${INCLUDE_PATH};${CMAKE_SYSTEM_INCLUDE_PATH})
 endif ()
 
+find_package(ZLIB REQUIRED)
+
 find_package(OpenSSL REQUIRED)
 set (HAVE_SYS_UIO_H_01 true)
 
@@ -57,6 +59,15 @@ add_library(
 )
 add_dependencies(${PROJECT_NAME} LINK_HEADERS)
 
+if (WIN32)
+target_compile_definitions(
+		${PROJECT_NAME} PRIVATE
+		strdup=_strdup
+		strcasecmp=_stricmp
+		strncasecmp=_strnicmp
+	)
+endif ()
+
 install(
 	TARGETS ${PROJECT_NAME}
 	ARCHIVE
@@ -66,6 +77,13 @@ install(
 
 if (APPLE)
 	set(LIBSO ${LIB_DIR}/libwfrest.a)
+elseif (WIN32)
+set(LIBSO ${LIB_DIR}/libwfrest.dll)
+	add_custom_target(
+		SCRIPT_SHARED_LIB ALL
+		COMMAND ${CMAKE_COMMAND} -E echo 'GROUP ( libwfrest.lib AS_NEEDED ( zlib.lib workflow.dll ) ) ' > ${LIBSO}
+	)
+	add_dependencies(SCRIPT_SHARED_LIB ${PROJECT_NAME})
 else ()
 	set(LIBSO ${LIB_DIR}/libwfrest.so)
 	add_custom_target(

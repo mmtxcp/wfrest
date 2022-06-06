@@ -2,7 +2,11 @@
 #include "workflow/WFFacilities.h"
 #include <cstring>
 #include <cstdlib>
+#ifdef _WIN32
+#include <direct.h>
+#else
 #include <unistd.h>
+#endif
 #include <fcntl.h>
 #include "StrUtil.h"
 #include "HttpContent.h"
@@ -131,15 +135,15 @@ void multipart_parser_userdata::handle_data()
 
 MultiPartForm::MultiPartForm()
 {
-    settings_ = {
-            .on_header_field = header_field_cb,
-            .on_header_value = header_value_cb,
-            .on_part_data = part_data_cb,
-            .on_part_data_begin = part_data_begin_cb,
-            .on_headers_complete = headers_complete_cb,
-            .on_part_data_end = part_data_end_cb,
-            .on_body_end = body_end_cb
-    };
+   // settings_ = {
+	settings_.on_header_field = header_field_cb,
+		settings_.on_header_value = header_value_cb,
+		settings_.on_part_data = part_data_cb,
+		settings_.on_part_data_begin = part_data_begin_cb,
+		settings_.on_headers_complete = headers_complete_cb,
+		settings_.on_part_data_end = part_data_end_cb,
+		settings_.on_body_end = body_end_cb;
+   // };
 }
 
 int MultiPartForm::header_field_cb(multipart_parser *parser, const char *buf, size_t len)

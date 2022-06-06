@@ -4,7 +4,11 @@
 #include "workflow/Workflow.h"
 #include "workflow/WFTaskFactory.h"
 
+#ifdef _WIN32
+#include <direct.h>
+#else
 #include <unistd.h>
+#endif
 #include <algorithm>
 
 #include "HttpMsg.h"
@@ -19,11 +23,11 @@
 
 using namespace wfrest;
 using namespace protocol;
-using Json = nlohmann::json;
+
 
 namespace wfrest
 {
-
+using Json = nlohmann::json;
 struct ReqData
 {
     std::string body;
@@ -761,7 +765,7 @@ void HttpResp::Json(const std::string &str)
     this->String(str);
 }
 
-void HttpResp::set_compress(const enum Compress &compress)
+void HttpResp::set_compress(const Compress &compress)
 {
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding
     headers["Content-Encoding"] = compress_method_to_str(compress);

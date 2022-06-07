@@ -4,6 +4,10 @@ wfrest是一个快速🚀, 高效⌛️, 简单易用的💥 c++ 异步web框架
 
 wfrest基于[✨**C++ Workflow**✨](https://github.com/sogou/workflow)开发. [**C++ Workflow**](https://github.com/sogou/workflow) 是一个设计轻盈优雅的企业级程序引擎.
 
+针对windows做了支持修改，对于文件读写，workflow 在windows下不支持文件读写任务，使用gotask替换。
+
+workflow  切换到windows分支。
+
 你可以用来：
 
 - 快速搭建http服务器：

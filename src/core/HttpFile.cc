@@ -146,7 +146,7 @@ void fileread(const std::string& pathname,	void* buf,	size_t count,	off_t offset
 	}
 
 }
-//#else
+#endif // WIN32
 void pwrite_callback(WFFileIOTask* pwrite_task)
 {
 	FileIOArgs* args = pwrite_task->get_args();
@@ -172,7 +172,7 @@ void pwrite_callback(WFFileIOTask* pwrite_task)
 		}
 	}
 }
-#endif // WIN32
+
 
 
 

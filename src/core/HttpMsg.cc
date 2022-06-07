@@ -668,7 +668,7 @@ void HttpResp::String(MultiPartEncoder *encoder)
 		MyBuffer2* mybuf = new MyBuffer2();
 		mybuf->buf = buf;
 		mybuf->size = file_size;
-		WFGoTask* pread_task = WFTaskFactory::create_go_task(file.second,fileread2,file.second,
+		WFGoTask* pread_task = WFTaskFactory::create_go_task("MultiPartEncoder",fileread2,file.second,
 			buf, file_size, 0);
 			pread_task->set_callback(funcallback);
 			server_task->user_data = (void*)mybuf;

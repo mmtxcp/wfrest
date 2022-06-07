@@ -232,7 +232,7 @@ int HttpFile::send_file(const std::string &path, size_t file_start, size_t file_
 			+ "-" + std::to_string(end)
 			+ "/" + std::to_string(size);
 #ifdef WIN32
-		WFGoTask* pread_task = WFTaskFactory::create_go_task(path, fileread, path,
+		WFGoTask* pread_task = WFTaskFactory::create_go_task("readfile", fileread, path,
 			buf,
 			size,
 			static_cast<off_t>(start));
@@ -282,7 +282,7 @@ void HttpFile::save_file(const std::string &dst_path, const std::string &content
     save_context->content = content;    // copy
     save_context->notify_msg = notify_msg;  // copy
 #ifdef WIN32
-	WFGoTask* pwrite_task = WFTaskFactory::create_go_task(dst_path, filewriter, dst_path,
+	WFGoTask* pwrite_task = WFTaskFactory::create_go_task("writerfile", filewriter, dst_path,
 		std::ref(save_context));
 	pwrite_task->set_callback(pwrite_callback2);
 #else
@@ -314,7 +314,7 @@ void HttpFile::save_file(const std::string &dst_path, const std::string &content
     save_context->content = content;    // copy
     save_context->notify_msg = std::move(notify_msg);  
 #ifdef WIN32
-	WFGoTask* pwrite_task = WFTaskFactory::create_go_task(dst_path, filewriter, dst_path,
+	WFGoTask* pwrite_task = WFTaskFactory::create_go_task("writerfile", filewriter, dst_path,
 		std::ref(save_context));
 	pwrite_task->set_callback(pwrite_callback2);
 #else
@@ -351,7 +351,7 @@ void HttpFile::save_file(const std::string &dst_path, std::string &&content,
     save_context->content = std::move(content);  
     save_context->notify_msg = notify_msg;  // copy
 #ifdef WIN32
-	WFGoTask* pwrite_task = WFTaskFactory::create_go_task(dst_path, filewriter, dst_path,
+	WFGoTask* pwrite_task = WFTaskFactory::create_go_task("writerfile", filewriter, dst_path,
 		std::ref(save_context));
 	pwrite_task->set_callback(pwrite_callback2);
 #else
@@ -385,7 +385,7 @@ void HttpFile::save_file(const std::string& dst_path, std::string&& content,
 	save_context->content = std::move(content);
 	save_context->notify_msg = std::move(notify_msg);
 
-	WFGoTask* pwrite_task = WFTaskFactory::create_go_task(dst_path,filewriter, dst_path,
+	WFGoTask* pwrite_task = WFTaskFactory::create_go_task("writerfile",filewriter, dst_path,
 		std::ref(save_context));
 	pwrite_task->set_callback(pwrite_callback2);
 	**server_task << pwrite_task;

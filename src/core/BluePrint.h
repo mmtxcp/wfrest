@@ -10,7 +10,7 @@
 // todo : hide
 #include "Router.h"
 #include "HttpServerTask.h" 
-
+#undef DELETE
 class SeriesWork;
 namespace wfrest
 {

@@ -4,6 +4,10 @@
 #include "workflow/StringUtil.h"
 #include <string>
 #include "StringPiece.h"
+#ifdef WIN32
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
+#endif
 
 namespace wfrest
 {

@@ -41,8 +41,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC -pipe -std=c++11 -fno-except
 
 if (APPLE)
 	set(WFREST_LIB wfrest workflow pthread OpenSSL::SSL OpenSSL::Crypto protobuf z)
+elseif (WIN32)
+set(WFREST_LIB wfrest Workflow ZLIB::ZLIB ws2_32 wsock32 OpenSSL::SSL OpenSSL::Crypto)
 else ()
-	set(WFREST_LIB wfrest)
+	set(WFREST_LIB wfrest Workflow ZLIB::ZLIB)
 endif ()
 
 set(EXAMPLE_LIST
@@ -79,7 +81,7 @@ foreach(src ${EXAMPLE_LIST})
 endforeach()
 
 add_executable(14_blueprint 14_blue_print/blog.cc)
-target_link_libraries(14_blueprint wfrest)
+target_link_libraries(14_blueprint wfrest )
 
 
 

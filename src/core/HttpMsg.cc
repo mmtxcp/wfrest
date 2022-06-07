@@ -4,7 +4,7 @@
 #include "workflow/Workflow.h"
 #include "workflow/WFTaskFactory.h"
 
-#ifdef _WIN32
+#ifdef WIN32
 #include <direct.h>
 #include <windows.h>
 #include <tchar.h> 
@@ -13,7 +13,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <io.h>
-
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
 #else
 #include <unistd.h>
 #endif

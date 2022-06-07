@@ -3,10 +3,10 @@
 #include "wfrest/HttpServer.h"
 #include "wfrest/PathUtil.h"
 
-using namespace wfrest;
+
 
 static WFFacilities::WaitGroup wait_group(1);
-
+using namespace wfrest;
 void sig_handler(int signo)
 {
     wait_group.done();
@@ -16,7 +16,7 @@ int main()
 {
     signal(SIGINT, sig_handler);
 
-    HttpServer svr;
+	HttpServer svr;
 
     // An expriment (Upload a file to parent dir is really dangerous.):
     // curl -v -X POST "ip:port/upload" -F "file=@demo.txt; filename=../demo.txt" -H "Content-Type: multipart/form-data"

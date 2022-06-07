@@ -52,6 +52,11 @@ struct ProxyCtx
     HttpServerTask *server_task;
     bool is_keep_alive;
 };
+struct MyBuffer2
+{
+	void* buf = nullptr;
+	size_t size = 0;
+};
 
 void proxy_http_callback(WFHttpTask *http_task)
 {   
@@ -623,6 +628,8 @@ void HttpResp::String(MultiPartEncoder *encoder)
 #ifdef WIN32
 		auto funcallback =
 			[&file, &boudary](WFGoTask* pread_task) {
+			HttpServerTask* server_task = task_of(pread_task);
+			MyBuffer2* mybuf = (MyBuffer2*)server_task->user_data;
 			
 			SeriesWork* series = series_of(pread_task);
 			std::string* content = static_cast<std::string*>(series->get_context());
@@ -643,7 +650,11 @@ void HttpResp::String(MultiPartEncoder *encoder)
 				content->append("\"\r\nContent-Type: ");
 				content->append(file_type);
 				content->append("\r\n\r\n");
-				//content->append(static_cast<char*>(args->buf), ret);
+				if (mybuf)
+				{
+					content->append(static_cast<char*>(mybuf->buf), mybuf->size);
+				}
+				
 			}
 			// last one, send the content
 			if (pread_task->user_data) {
@@ -654,9 +665,13 @@ void HttpResp::String(MultiPartEncoder *encoder)
 				resp->append_output_body_nocopy(content->c_str(), content->size());
 			}
 		};
+		MyBuffer2* mybuf = new MyBuffer2();
+		mybuf->buf = buf;
+		mybuf->size = file_size;
 		WFGoTask* pread_task = WFTaskFactory::create_go_task(file.second,fileread2,file.second,
 			buf, file_size, 0);
 			pread_task->set_callback(funcallback);
+			server_task->user_data = (void*)mybuf;
 #else
 		auto funcallback =
 			[&file, &boudary](WFFileIOTask* pread_task) {

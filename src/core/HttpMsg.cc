@@ -896,7 +896,12 @@ void HttpResp::Http(const std::string &url, int redirect_max, size_t size_limit)
 	std::string match_path = server_req->match_path();
 	if (match_path.empty())
 	{
-		request_uri = request_uri.substr(full_path.size(), request_uri.size() - full_path.size());
+		if (full_path.size() <= request_uri.size())
+			request_uri = request_uri.substr(full_path.size(), request_uri.size() - full_path.size());
+		else
+		{
+			request_uri = match_path;
+		}
 	}
 	else
 	{

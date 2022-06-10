@@ -58,18 +58,34 @@ void HttpServerTask::handle(int state, int error)
 CommMessageOut *HttpServerTask::message_out()
 {
     HttpResp *resp = this->get_resp();
+	HttpHeaderCursor req_cursor(resp);
+	std::string name = "Content-Type";
+	struct HttpMessageHeader header = {
+		/*	.name		=	*/	name.c_str(),
+		/*	.name_len	=	*/	name.size()
+	};
 
     std::map<std::string, std::string, MapStringCaseLess> &headers = resp->headers;
-    // content type
-    if(headers.find("Content-Type") == headers.end())
-    {
-        headers["Content-Type"] = "text/plain";
-    }
-    if(headers.find("Date") == headers.end())
-    {
-        headers["Date"] = Timestamp::now().to_format_str("%a, %d %b %Y %H:%M:%S GMT");
-    }
-    struct HttpMessageHeader header;
+	//该处需要对Content-Type 进行是否存在判断，否则代理的的时候会出现错误，两个Content-Type 头，导致页面显示错误
+	if (!req_cursor.find(&header))
+	{
+		// content type
+		if (headers.find(name) == headers.end())
+		{
+			headers[name] = "text/plain";
+		}
+	}
+	name = "Date";
+	header.name = name.c_str();
+	header.name_len = name.size();
+	if (!req_cursor.find(&header))
+	{
+		if (headers.find(name) == headers.end())
+		{
+			headers[name] = Timestamp::now().to_format_str("%a, %d %b %Y %H:%M:%S GMT");
+		}
+	}
+   // struct HttpMessageHeader header;
 
     // fill headers we set
     for(auto &header_kv : headers)

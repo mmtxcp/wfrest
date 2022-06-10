@@ -112,7 +112,7 @@ void filewriter(const std::string& path, SaveFileContext*& save_context)
 	try
 	{
 		//打开文件
-		std::ofstream outFile(path);
+		std::ofstream outFile(path,std::ios::binary);
 		if (!outFile.is_open())
 		{
 			save_context->notify_msg = "open file faild.";
@@ -131,7 +131,7 @@ void fileread(const std::string& pathname,	void* buf,	size_t count,	off_t offset
 {
 	try
 	{
-		std::ifstream outFile(pathname);
+		std::ifstream outFile(pathname, std::ios::binary);
 		if (!outFile.is_open())
 		{
 			return ;
@@ -215,8 +215,7 @@ int HttpFile::send_file(const std::string &path, size_t file_start, size_t file_
         content_type = APPLICATION_OCTET_STREAM;
     }
     resp->headers["Content-Type"] = ContentType::to_str(content_type);
-	int fd = open(path.c_str(), O_RDONLY);
-	if (fd >= 0)
+	
 	{
 		size_t size = end - start;
 		void* buf = malloc(size);
@@ -244,6 +243,11 @@ int HttpFile::send_file(const std::string &path, size_t file_start, size_t file_
 	
 		server_task->user_data = (void*)mybuf;	/* to free() in callback() */
 #else
+		int fd = open(path.c_str(), O_RDONLY);
+		if (fd >= 0)
+		{
+			return StatusFileReadError;
+		}
 		WFFileIOTask* pread_task = WFTaskFactory::create_pread_task(fd,
 			buf,
 			size,
@@ -270,8 +274,7 @@ void HttpFile::save_file(const std::string &dst_path, const std::string &content
 void HttpFile::save_file(const std::string &dst_path, const std::string &content,
                                         HttpResp *resp, const std::string &notify_msg) 
 {
-	int fd = open(dst_path.c_str(), O_WRONLY | O_CREAT, 0644);
-	if (fd < 0)
+	if (PathUtil::is_file(dst_path))
 	{
 		resp->Error(StatusFileWriteError);
 		return;
@@ -283,9 +286,15 @@ void HttpFile::save_file(const std::string &dst_path, const std::string &content
     save_context->notify_msg = notify_msg;  // copy
 #ifdef WIN32
 	WFGoTask* pwrite_task = WFTaskFactory::create_go_task("writerfile", filewriter, dst_path,
-		std::ref(save_context));
+		save_context);
 	pwrite_task->set_callback(pwrite_callback2);
 #else
+	int fd = open(dst_path.c_str(), O_WRONLY | O_CREAT, 0644);
+	if (fd < 0)
+	{
+		resp->Error(StatusFileWriteError);
+		return;
+	}
     WFFileIOTask *pwrite_task = WFTaskFactory::create_pwrite_task(fd,
                                                                   static_cast<const void *>(save_context->content.c_str()),
                                                                   save_context->content.size(),
@@ -302,12 +311,12 @@ void HttpFile::save_file(const std::string &dst_path, const std::string &content
 void HttpFile::save_file(const std::string &dst_path, const std::string &content,
                                         HttpResp *resp, std::string &&notify_msg) 
 {
-	int fd = open(dst_path.c_str(), O_WRONLY | O_CREAT, 0644);
-	if (fd < 0)
+	if (PathUtil::is_file(dst_path))
 	{
 		resp->Error(StatusFileWriteError);
 		return;
 	}
+	
     HttpServerTask *server_task = task_of(resp);
 
     auto *save_context = new SaveFileContext; 
@@ -315,9 +324,15 @@ void HttpFile::save_file(const std::string &dst_path, const std::string &content
     save_context->notify_msg = std::move(notify_msg);  
 #ifdef WIN32
 	WFGoTask* pwrite_task = WFTaskFactory::create_go_task("writerfile", filewriter, dst_path,
-		std::ref(save_context));
+		save_context);
 	pwrite_task->set_callback(pwrite_callback2);
 #else
+	int fd = open(dst_path.c_str(), O_WRONLY | O_CREAT, 0644);
+	if (fd < 0)
+	{
+		resp->Error(StatusFileWriteError);
+		return;
+}
     WFFileIOTask *pwrite_task = WFTaskFactory::create_pwrite_task(fd,
                                                                   static_cast<const void *>(save_context->content.c_str()),
                                                                   save_context->content.size(),
@@ -339,12 +354,12 @@ void HttpFile::save_file(const std::string &dst_path, std::string &&content, Htt
 void HttpFile::save_file(const std::string &dst_path, std::string &&content, 
                                         HttpResp *resp, const std::string &notify_msg) 
 {
-	int fd = open(dst_path.c_str(), O_WRONLY | O_CREAT, 0644);
-	if (fd < 0)
+	if (!PathUtil::is_file(dst_path))
 	{
-		resp->Error(StatusFileWriteError);
+		resp->Error(StatusNotFound);
 		return;
 	}
+	
     HttpServerTask *server_task = task_of(resp);
 
     auto *save_context = new SaveFileContext; 
@@ -352,9 +367,15 @@ void HttpFile::save_file(const std::string &dst_path, std::string &&content,
     save_context->notify_msg = notify_msg;  // copy
 #ifdef WIN32
 	WFGoTask* pwrite_task = WFTaskFactory::create_go_task("writerfile", filewriter, dst_path,
-		std::ref(save_context));
+		save_context);
 	pwrite_task->set_callback(pwrite_callback2);
 #else
+	int fd = open(dst_path.c_str(), O_WRONLY | O_CREAT, 0644);
+	if (fd < 0)
+	{
+		resp->Error(StatusFileWriteError);
+		return;
+	}
 	WFFileIOTask* pwrite_task = WFTaskFactory::create_pwrite_task(fd,
 		static_cast<const void*>(save_context->content.c_str()),
 		save_context->content.size(),
@@ -379,6 +400,7 @@ void HttpFile::save_file(const std::string& dst_path, std::string&& content,
 		resp->Error(StatusFileWriteError);
 		return;
 	}
+	close(fd);
 	HttpServerTask* server_task = task_of(resp);
 
 	auto* save_context = new SaveFileContext;
@@ -386,7 +408,7 @@ void HttpFile::save_file(const std::string& dst_path, std::string&& content,
 	save_context->notify_msg = std::move(notify_msg);
 
 	WFGoTask* pwrite_task = WFTaskFactory::create_go_task("writerfile",filewriter, dst_path,
-		std::ref(save_context));
+		save_context);
 	pwrite_task->set_callback(pwrite_callback2);
 	**server_task << pwrite_task;
 	server_task->add_callback([save_context](HttpTask*) {

@@ -60,7 +60,7 @@ int main()
     {
         fprintf(stderr, "full_path : %s\n", req->full_path().c_str());
         fprintf(stderr, "current_path : %s\n", req->current_path().c_str());
-        fprintf(stderr, "current_path : %s\n", req->match_path().c_str());
+        fprintf(stderr, "match_path : %s\n", req->match_path().c_str());
     });
 
     // This handler will add a new router for /user/groups.

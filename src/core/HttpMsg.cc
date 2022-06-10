@@ -576,7 +576,7 @@ void fileread2(const std::string& pathname, void* buf, size_t count, off_t offse
 {
 	try
 	{
-		std::ifstream outFile(pathname);
+		std::ifstream outFile(pathname, std::ios::binary);
 		if (!outFile.is_open())
 		{
 			return;
@@ -876,12 +876,42 @@ int HttpResp::get_error() const
     HttpServerTask *server_task = task_of(this);
     return server_task->get_error();   
 }
+int startsWith(const std::string& s, const std::string& sub) {
+	return s.find(sub) == 0 ? 1 : 0;
+}
+
+int endsWith(const std::string& s, const std::string& sub) {
+	return s.rfind(sub) == (s.length() - sub.length()) ? 1 : 0;
+}
 
 void HttpResp::Http(const std::string &url, int redirect_max, size_t size_limit)
 {
     HttpServerTask *server_task = task_of(this);
     HttpReq *server_req = server_task->get_req();
-    std::string http_url = url;
+
+	//请求地址处理
+	std::string request_uri = server_req->get_request_uri();  // or can't parse URI
+	std::string full_path = server_req->full_path();
+	std::string current_path = server_req->current_path();
+	std::string match_path = server_req->match_path();
+	if (match_path.empty())
+	{
+		request_uri = request_uri.substr(full_path.size(), request_uri.size() - full_path.size());
+	}
+	else
+	{
+		if (endsWith(full_path, "/*"))
+		{
+			request_uri = "/" + match_path;
+		}
+		else
+		{
+			request_uri = request_uri.substr(current_path.size(), request_uri.size() - current_path.size());
+		}
+	}
+	
+
+    std::string http_url = url + request_uri;
 	if (strncasecmp(url.c_str(), "http://", 7) != 0 &&
 		strncasecmp(url.c_str(), "https://", 8) != 0)
 	{

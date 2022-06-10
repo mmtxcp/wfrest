@@ -18,11 +18,14 @@ int main()
     HttpServer svr;
 
     // curl -v http://ip:port/proxy
-    svr.GET("/proxy", [](const HttpReq *req, HttpResp *resp)
+    svr.GET("/proxy/*", [](const HttpReq *req, HttpResp *resp)
     {
         resp->Http("http://www.baidu.com");
     });
-
+	svr.GET("/zhihu/*", [](const HttpReq *req, HttpResp *resp)
+    {
+        resp->Http("http://172.4.2.251:9527");
+    });
     svr.GET("/bing", [](const HttpReq *req, HttpResp *resp)
     {
         resp->Http("www.bing.com");
